@@ -14,8 +14,12 @@ from django.db.models import Q
 
 def index(request):
     # Count total countries in database
-    country_count = Country.objects.count()
-    return HttpResponse(f'<h1>CodeFusion Country Data</h1><p>{country_count} countries in database.</p>')
+    return HttpResponse(f'<h1>Index</h1><div><a href="http://localhost:8000/countries">countries</a></div>')
+
+
+def country_list_view(request):
+    countries = Country.objects.all().prefetch_related('languages', 'currencies')
+    return render(request, 'country_list.html', {'countries': countries})
 
 
 class CountryPagination(PageNumberPagination):
