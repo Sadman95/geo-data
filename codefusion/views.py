@@ -28,21 +28,25 @@ class CountryViewSet(viewsets.ModelViewSet):
     pagination_class = CountryPagination
     
     def get_queryset(self):
-        queryset = Country.objects.all()
+        queryset = Country.objects.all().prefetch_related('currencies', 'languages')
         
         # Search by name or capital
         search_query = self.request.query_params.get('search', None)
         if search_query:
             queryset = queryset.filter(
                 Q(name_common__icontains=search_query) | 
-                Q(name_official__icontains=search_query) |
-                Q(capital__icontains=search_query)
+                Q(name_official__icontains=search_query)
             )
         
         # Filter by region
         region = self.request.query_params.get('region', None)
         if region:
             queryset = queryset.filter(region__icontains=region)
+            
+        # Filter by language name
+        language = self.request.query_params.get('language')
+        if language:
+            queryset = queryset.filter(languages__name__iexact=language)
         
         # Sorting
         sort_by = self.request.query_params.get('sort_by', 'id')
