@@ -4,7 +4,7 @@ from .models import Country, Currency, Language
 class CurrencySerializer(serializers.ModelSerializer):
     class Meta:
         model = Currency
-        fields = ['code', 'name', 'symbol']
+        fields = '__all__'
 
 
 class LanguageSerializer(serializers.ModelSerializer):

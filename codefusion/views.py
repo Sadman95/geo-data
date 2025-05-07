@@ -10,6 +10,7 @@ from rest_framework import status
 from .serializers import CountrySerializer
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.generics import RetrieveAPIView
+from django.db.models import Q
 
 def index(request):
     # Count total countries in database
@@ -22,7 +23,7 @@ class CountryPagination(PageNumberPagination):
     page_size_query_param = 'page_size'
     max_page_size = 100
 
-class CountryViewSet(viewsets.ReadOnlyModelViewSet):
+class CountryViewSet(viewsets.ModelViewSet):
     serializer_class = CountrySerializer
     pagination_class = CountryPagination
     
