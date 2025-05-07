@@ -8,4 +8,5 @@ router.register(r'countries', views.CountryViewSet, basename='country')
 urlpatterns = [
     path('', views.index, name='index'),
     path('api/', include(router.urls)),
+    path('api/countries/<int:pk>/', views.CountryDetailView.as_view(), name='country-detail'),
 ]
