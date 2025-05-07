@@ -1,4 +1,3 @@
-
 """
 URL configuration for country_data_project project.
 """
