@@ -1,6 +1,8 @@
 from rest_framework import serializers
 from .models import Country, Currency, Language
 
+# searializers
+
 class CurrencySerializer(serializers.ModelSerializer):
     class Meta:
         model = Currency

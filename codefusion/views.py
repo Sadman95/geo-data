@@ -1,5 +1,4 @@
 
-from django.shortcuts import render
 from django.http import HttpResponse
 from .models import Country
 from rest_framework import viewsets, filters
@@ -11,15 +10,20 @@ from .serializers import CountrySerializer
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.generics import RetrieveAPIView
 from django.db.models import Q
-from django.http import JsonResponse
-from django.shortcuts import get_object_or_404
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import render, redirect
+from django.contrib.auth import login
+from .forms import RegisterForm
+
+
+# views
 
 
 def index(request):
     # Count total countries in database
-    return HttpResponse(f'<h1>Index</h1><div><a href="http://localhost:8000/countries">countries</a></div>')
+    return HttpResponse('<h1>Index</h1><div><a href="http://localhost:8000/countries">countries</a></div>')
 
-
+@login_required
 def country_list_view(request):
     query = request.GET.get('q', '')
     region = request.GET.get('region', '')
@@ -46,24 +50,20 @@ def country_list_view(request):
         'region': region,
         'regions': regions,
     })
+    
+    
+def register_view(request):
+    if request.method == 'POST':
+        form = RegisterForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            login(request, user)
+            return redirect('country-list')
+    else:
+        form = RegisterForm()
+    return render(request, 'register.html', {'form': form})
 
-def same_region_countries(request):
-    country_name = request.GET.get('country')
 
-    if not country_name:
-        return JsonResponse({'error': 'Missing country parameter'}, status=400)
-
-    country = get_object_or_404(Country, name_common__iexact=country_name)
-    region = country.region
-
-    other_countries = (
-        Country.objects
-        .filter(region=region)
-        .exclude(pk=country.pk)
-        .values_list('name_common', flat=True)
-    )
-
-    return JsonResponse(list(other_countries), safe=False)
 
 class CountryPagination(PageNumberPagination):
     page_size = 20
