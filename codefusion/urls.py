@@ -11,4 +11,5 @@ urlpatterns = [
     path('api', include(router.urls)),
     path('api/countries/<int:pk>', views.CountryDetailView.as_view(), name='country-detail'),
     path('countries', views.country_list_view, name='country-list'),
+    path('regional_countries', views.same_region_countries, name='same-region-countries'),
 ]

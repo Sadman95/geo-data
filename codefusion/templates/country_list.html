@@ -5,38 +5,149 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Country List</title>
+    <title>Countries</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
-<body class="bg-light">
-    <div class="container mt-5">
-        <h2 class="mb-4">Country Information</h2>
-        <table class="table table-bordered table-hover">
-            <thead class="table-dark">
-                <tr>
-                    <th>Name</th>
-                    <th>CCA2</th>
-                    <th>Capital</th>
-                    <th>Population</th>
-                    <th>Time Zone</th>
-                    <th>Flag</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for country in countries %}
-                    <tr>
-                        <td>{{ country.name_common }}</td>
-                        <td>{{ country.cca2 }}</td>
-                        <td>{{ country.capital }}</td>
-                        <td>{{ country.population|intcomma }}</td>
-                        <td>{{ country.raw_data.timezones.0 }}</td>
-                        <td><img src="{{ country.flag_png }}" alt="Flag" style="height: 30px;"></td>
-                    </tr>
-                {% empty %}
-                    <tr><td colspan="6" class="text-center">No countries found.</td></tr>
+<body class="p-4">
+
+
+
+<h1 class="mb-4">Country List</h1>
+
+
+    <form id="filterForm" method="get" class="row g-3 mb-4">
+        <div class="col-md-4">
+            <input type="text" id="searchInput" name="q" class="form-control" placeholder="Search by name, CCA2, capital" value="{{ query }}">
+        </div>
+        <div class="col-md-3">
+            <select name="region" class="form-select" onchange="this.form.submit()">
+                <option value="">All Regions</option>
+                {% for r in regions %}
+                    <option value="{{ r }}" {% if region == r %}selected{% endif %}>{{ r }}</option>
                 {% endfor %}
-            </tbody>
-        </table>
+            </select>
+        </div>
+        <div class="col-md-2 d-none">
+            <button type="submit" class="btn btn-primary w-100">Filter</button>
+        </div>
+    </form>
+
+<table class="table table-bordered table-striped">
+    <thead class="table-dark">
+        <tr>
+            <th>Name</th>
+            <th>CCA2</th>
+            <th>Capital</th>
+            <th>Population</th>
+            <th>Timezones</th>
+            <th>Region</th>
+            <th>Flag</th>
+            <th>Details</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for country in countries %}
+        <tr>
+            <td>{{ country.name_common }}</td>
+            <td>{{ country.cca2 }}</td>
+            <td>{{ country.capital }}</td>
+            <td>{{ country.population|intcomma }}</td>
+            <td>{{ country.raw_data.timezones }}</td>
+            <td>{{ country.region }}</td>
+            <td>
+                {% if country.flag_png %}
+                    <img src="{{ country.flag_png }}" alt="Flag" width="40">
+                {% endif %}
+            </td>
+            <td>
+                <!-- Modal -->
+<div class="modal fade" id="detailsModal" tabindex="-1" aria-labelledby="detailsModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="detailsModalLabel">Country details</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p><strong>Region:</strong> <span id="modalRegion"></span></p>
+        <p><strong>Spoken Languages:</strong></p>
+        <ul id="modalLanguages"></ul>
+        <p><strong>Timezones:</strong></p>
+        <ul id="modalTimezones"></ul>
+        <hr>
+        <p><strong>Other Countries in Same Region:</strong>
+        </p>
+        <ul id="modalOtherCountries"></ul>
+      </div>
     </div>
+  </div>
+</div>
+                <button class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#detailsModal"
+    data-name="{{ country.name_common }}"
+    data-region="{{ country.raw_data.region }}"
+    data-languages="{{ country.raw_data.languages|escapejs }}"
+    data-timezones="{{ country.raw_data.timezones|escapejs }}"
+    data-other-countries="{{ country.raw_data.other_countries_in_region|escapejs }}">
+    View
+</button>
+
+            </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7" class="text-center">No countries found.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<script>
+    const input = document.getElementById('searchInput');
+    const form = document.getElementById('filterForm');
+    let timer = null;
+
+    input.addEventListener('input', function () {
+        clearTimeout(timer);
+        timer = setTimeout(() => {
+            form.submit();
+        }, 500);
+    });
+
+   const modal = document.getElementById('detailsModal');
+
+modal.addEventListener('show.bs.modal', function (event) {
+    const button = event.relatedTarget;
+
+    const name = button.getAttribute('data-name');
+    const region = button.getAttribute('data-region');
+    const languages = JSON.parse(button.getAttribute('data-languages') || '{}');
+    const timezones = JSON.parse(button.getAttribute('data-timezones') || '[]');
+    const otherCountries = JSON.parse(button.getAttribute('data-other-countries') || '[]');
+
+    console.log('Modal data:', { name, region, languages, timezones, otherCountries });
+
+    document.getElementById('detailsModalLabel').textContent = name;
+    document.getElementById('modalRegion').textContent = region;
+
+    const modalLanguages = document.getElementById('modalLanguages');
+    modalLanguages.innerHTML = '';
+    Object.entries(languages).forEach(([code, lang]) => {
+        modalLanguages.innerHTML += `<li>${lang} (${code})</li>`;
+    });
+
+    const modalTimezones = document.getElementById('modalTimezones');
+    modalTimezones.innerHTML = '';
+    timezones.forEach(zone => {
+        modalTimezones.innerHTML += `<li>${zone}</li>`;
+    });
+
+    const modalOtherCountries = document.getElementById('modalOtherCountries');
+    modalOtherCountries.innerHTML = '';
+    otherCountries.forEach(country => {
+        modalOtherCountries.innerHTML += `<li>${country}</li>`;
+    });
+});
+
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

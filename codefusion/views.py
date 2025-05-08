@@ -11,6 +11,9 @@ from .serializers import CountrySerializer
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.generics import RetrieveAPIView
 from django.db.models import Q
+from django.http import JsonResponse
+from django.shortcuts import get_object_or_404
+
 
 def index(request):
     # Count total countries in database
@@ -18,9 +21,49 @@ def index(request):
 
 
 def country_list_view(request):
-    countries = Country.objects.all().prefetch_related('languages', 'currencies')
-    return render(request, 'country_list.html', {'countries': countries})
+    query = request.GET.get('q', '')
+    region = request.GET.get('region', '')
+    
+    countries = Country.objects.all()
+    
 
+    if query:
+        countries = countries.filter(
+            Q(name_common__icontains=query) |
+            Q(cca2__icontains=query) |
+            Q(capital__icontains=query)
+        )
+    
+    if region:
+        countries = countries.filter(region__iexact=region)
+
+    # Get distinct regions for the dropdown
+    regions = Country.objects.values_list('region', flat=True).distinct().order_by('region')
+
+    return render(request, 'country_list.html', {
+        'countries': countries,
+        'query': query,
+        'region': region,
+        'regions': regions,
+    })
+
+def same_region_countries(request):
+    country_name = request.GET.get('country')
+
+    if not country_name:
+        return JsonResponse({'error': 'Missing country parameter'}, status=400)
+
+    country = get_object_or_404(Country, name_common__iexact=country_name)
+    region = country.region
+
+    other_countries = (
+        Country.objects
+        .filter(region=region)
+        .exclude(pk=country.pk)
+        .values_list('name_common', flat=True)
+    )
+
+    return JsonResponse(list(other_countries), safe=False)
 
 class CountryPagination(PageNumberPagination):
     page_size = 20
